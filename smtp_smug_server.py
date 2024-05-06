@@ -95,6 +95,8 @@ if __name__ == '__main__':
                     help='Hostname of the server')
   parser.add_argument('-d','--delimiters', metavar='DELIMITERS', required=True, nargs='+', type=str,
                     help='Delimiters of the server')
+  parser.add_argument('-s','--servers', metavar='SERVERS', required=True, nargs='+', type=str,
+                    help='IP addresses of the SMTP servers in the format IP:PORT')
   
   args = parser.parse_args()
   addr = args.ip
@@ -103,7 +105,16 @@ if __name__ == '__main__':
   delimiters = []
   for x in args.delimiters:
     delimiters.append(ast.literal_eval(f'"{x}"').encode())
-  
+  servers = []
+  for x in args.servers:
+    try:
+      temp_addr = x[:x.index(':')]
+      temp_port = int(x[x.index(':') + 1 :])
+      socket.inet_aton(temp_addr)  
+      servers.append([temp_addr, temp_port]) 
+    except:
+      print("SMTP IP address {} is not valid!".format(x))
+      exit()
   try:
      socket.inet_aton(addr)
   except socket.error:
@@ -112,6 +123,11 @@ if __name__ == '__main__':
 
   #Modify the limiters for the "DATA" command
   aiosmtpd.smtp.DATA_LIMITER = tuple(delimiters)
+
+  #Update the smtp server table
+  smtp_servers['SMTP1'] = [servers[0][0], servers[0][1], smtp_servers['SMTP1'][2]]
+  smtp_servers['SMTP2'] = [servers[1][0], servers[1][1], smtp_servers['SMTP2'][2]]
+  smtp_servers['SMTP3'] = [servers[2][0], servers[2][1], smtp_servers['SMTP3'][2]]
 
   controller = CustomHostnameController(CustomHandler(),
                                         hostname=addr,
